@@ -30,62 +30,62 @@
 // Robot kol parametreleri
 #define L1 105.0 // İlk kol uzunluğu
 #define L2 98.85 // İkinci kol uzunluğu -gripper merkezine olan uzaklık.
-#define mm_per_step // Yukseklik motorunun bir adım başına katettiği yol. 
-#define MOTOR_MAX_Z // düşey eksende maksimum derinlik.
+#define mm_per_step 1 // Yukseklik motorunun bir adım başına katettiği yol. 
+#define MOTOR_MAX_Z  1000// düşey eksende maksimum derinlik.
 #define tekil_gorev_suresi 2000
 #define motor3_guvenlik_suresi 2000
 #define gripper_delay 2000
 #define release_safety_mm 1.5
 #define ev_boyut 13
 //Kutu yerleri
-#define RED_BOX_1_X
-#define RED_BOX_1_Y
+#define RED_BOX_1_X 1
+#define RED_BOX_1_Y 1
 
-#define RED_BOX_2_X
-#define RED_BOX_2_Y
+#define RED_BOX_2_X 1
+#define RED_BOX_2_Y 1
 
-#define RED_BOX_3_X
-#define RED_BOX_3_Y
-
-
-#define GREEN_BOX_1_X
-#define GREEN_BOX_1_Y
-
-#define GREEN_BOX_2_X
-#define GREEN_BOX_2_Y
-
-#define GREEN_BOX_3_X
-#define GREEN_BOX_3_Y
+#define RED_BOX_3_X 1 
+#define RED_BOX_3_Y 1 
 
 
-#define BLUE_BOX_1_X
-#define BLUE_BOX_1_Y
+#define GREEN_BOX_1_X 1
+#define GREEN_BOX_1_Y 1
 
-#define BLUE_BOX_2_X
-#define BLUE_BOX_2_Y
+#define GREEN_BOX_2_X 1
+#define GREEN_BOX_2_Y 1
 
-#define BLUE_BOX_3_X
-#define BLUE_BOX_3_Y
+#define GREEN_BOX_3_X 1
+#define GREEN_BOX_3_Y 1
 
 
-#define BLACK_BOX_1_X
-#define BLACK_BOX_1_Y
+#define BLUE_BOX_1_X 1
+#define BLUE_BOX_1_Y 1
 
-#define BLACK_BOX_2_X
-#define BLACK_BOX_2_Y
+#define BLUE_BOX_2_X 1
+#define BLUE_BOX_2_Y 1
 
-#define BLACK_BOX_3_X
-#define BLACK_BOX_3_Y
+#define BLUE_BOX_3_X 1
+#define BLUE_BOX_3_Y 1
+
+
+#define BLACK_BOX_1_X 1
+#define BLACK_BOX_1_Y 1
+
+#define BLACK_BOX_2_X 1
+#define BLACK_BOX_2_Y 1
+
+#define BLACK_BOX_3_X 1
+#define BLACK_BOX_3_Y 1
 
 class Ev {
 public:
   double x;
   double y;
-  const char* colorName;
+  int colorName;
   int floor;
 
   // Yapıcı (constructor) fonksiyon
-  Ev(double _x, double _y, const char* _colorName, int _floor) {
+  Ev(double _x, double _y, int _colorName, int _floor) {
     x = _x;
     y = _y;
     colorName = _colorName;
@@ -95,11 +95,19 @@ public:
 
 double piksel_mm_donusum_katsayisi = (L1 + L2) / 1100 ;
 double a, b, x, y, z;
-int colorVal, floor;
 int numHouses;
 double kutu_alma_yuksekligi = MOTOR_MAX_Z - (ev_boyut/2);
 bool isBoxUsed[3][2] = {false};  // Kutu kullanım durumu flag'leri
-Ev evler[7];
+
+Ev evler[7] = {
+  Ev(0, 0, 0, 0),  // Initialize with appropriate values
+  Ev(0, 0, 0, 0),  // Initialize with appropriate values
+  Ev(0, 0, 0, 0),
+  Ev(0, 0, 0, 0),
+  Ev(0, 0, 0, 0),
+  Ev(0, 0, 0, 0),
+  Ev(0, 0, 0, 0)
+};
 
 // motor nesneleri
 Stepper motor1(MOTOR_STEPS_PER_REV, MOTOR_1_DIR_PIN, MOTOR_1_STEP_PIN, MOTOR_1_MS1_PIN, MOTOR_1_MS2_PIN);
@@ -164,8 +172,8 @@ int parseJSON(const char* json) {
   for (int i = 0; i < numHouses; i++) {
     JsonObject house = doc[i]; // Sıradaki evi al
 
-    double x = house["x"]* piksel_mm_donusum_katsayisi;
-    double y = house["y"]* piksel_mm_donusum_katsayisi;
+    double x = house["x"].as<double>() * piksel_mm_donusum_katsayisi;
+    double y = house["y"].as<double>() * piksel_mm_donusum_katsayisi;
     const char* colorName = house["colorName"];
     int floor = house["floor"];
 
@@ -193,10 +201,10 @@ void Task(double a, double b, double x, double y, double z) {
   rotateMotor(motor3, -1*adim3);
   delay(tekil_gorev_suresi);
   //kutu orijinde
-  double aci1, aci2 = inverse_kinematics(x,y);
-  int adim1 = acidan_adim(aci1);
-  int adim2 = acidan_adim(aci2);
-  int adim3 = dusey_adim(z);
+  aci1, aci2 = inverse_kinematics(x,y);
+  adim1 = acidan_adim(aci1);
+  adim2 = acidan_adim(aci2);
+  adim3 = dusey_adim(z);
   rotateMotor(motor1, adim1);
   rotateMotor(motor2, adim2);
   delay(motor3_guvenlik_suresi);
@@ -239,7 +247,7 @@ void loop() {
         double y = evler[ev_indexi].y;
         double z = kutu_alma_yuksekligi + release_safety_mm + (currentFloor - 1) * (ev_boyut);
         switch (evler[ev_indexi].colorName) {
-          case "Black":
+          case 0:
             if (!isBoxUsed[0][0]) {
               // Rengin ilk kutusu henüz kullanılmadı
               double a = BLACK_BOX_1_X;
@@ -255,7 +263,7 @@ void loop() {
               isBoxUsed[0][2] = true;  // Kullanıldı olarak işaretleyin
             }
             break; 
-          case "Red":
+          case 1:
             if (!isBoxUsed[0][0]) {
               // Rengin ilk kutusu henüz kullanılmadı
               double a = RED_BOX_1_X;
@@ -271,7 +279,7 @@ void loop() {
               isBoxUsed[0][2] = true;  // Kullanıldı olarak işaretleyin
             } 
             break;
-          case "Green":
+          case 2:
             if (!isBoxUsed[0][0]) {
               // Rengin ilk kutusu henüz kullanılmadı
               double a = GREEN_BOX_1_X;
@@ -287,7 +295,7 @@ void loop() {
               isBoxUsed[0][2] = true;  // Kullanıldı olarak işaretleyin
             } 
             break;
-          case "Blue":
+          case 3:
             if (!isBoxUsed[0][0]) {
               // Rengin ilk kutusu henüz kullanılmadı
               double a = BLUE_BOX_1_X;
